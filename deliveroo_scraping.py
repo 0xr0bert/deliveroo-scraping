@@ -174,8 +174,12 @@ def get_restaurant_and_process_menu(url, tags_df, tag_type, restaurants,
         soup = BeautifulSoup(page)
         # Try and process the menu, if it doesn't work handle it nicely
         try:
-            process_menu(soup, url, tags_df, tag_type, restaurants,
-                         restaurants_to_tags, menu_sections, menu_items)
+            (tags_df, tag_type, restaurants, restaurants_to_tags,
+             menu_sections, menu_items) = process_menu(soup, url, tags_df,
+                                                       tag_type, restaurants,
+                                                       restaurants_to_tags,
+                                                       menu_sections,
+                                                       menu_items)
         except Exception:
             print(f"Fail on {url}")
 
@@ -198,3 +202,34 @@ def get_restaurant_and_process_menu(url, tags_df, tag_type, restaurants,
     # Return the amended dataframes
     return (tags_df, tag_type, restaurants, restaurants_to_tags, menu_sections,
             menu_items, restaurants_to_locs)
+
+
+def process_restaurants_for_postcode(postcode, tags_df, tag_type, restaurants,
+                                     restaurants_to_tags, menu_sections,
+                                     menu_items, restaurants_to_locs,
+                                     postcodes):
+    # This function processes the restaurants for the postcodes
+
+    # Add the postcode to the URL - it doesn't matter that it says camden, it
+    # will update as appropriate.
+    url = "https://deliveroo.co.uk/restaurants/london/camden" \
+        f"?postcode={postcode}&sort=time"
+
+    # Create the HTTP request
+    request = urllib.request.Request(url, headers=hdr)
+
+    # Get the page
+    page = urllib.request.urlopen(request)
+    soup = BeautifulSoup(page)
+
+    # For every link in the page
+    for i, link in enumerate(soup.find_all("a")):
+        print(i)
+        # Get the destination of the link
+        destination = link.get("href")
+        # If it's to a menu, get the restaurant and process the menu
+        if "/menu" in destination:
+            (tags_df, tag_type, restaurants, restaurants_to_tags,
+             menu_sections, menu_items, restaurants_to_locs) = \
+                get_restaurant_and_process_menu(
+                    "https://deliveroo.co.uk" + destination)

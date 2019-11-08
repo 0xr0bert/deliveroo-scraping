@@ -152,3 +152,49 @@ def process_menu(doc, url, tags_df, tag_type, restaurants, restaurants_to_tags,
     # Return the updated dataframes
     return (tags_df, tag_type, restaurants, restaurants_to_tags, menu_sections,
             menu_items)
+
+
+def get_restaurant_and_process_menu(url, tags_df, tag_type, restaurants,
+                                    restaurants_to_tags, menu_sections,
+                                    menu_items, restaurants_to_locs,
+                                    postcodes):
+    # This functions gets the restaurant and then processes its menu if it
+    # hasn't been processed before
+
+    # Get the deliveroo name from the url
+    deliveroo_name = re.findall(
+        '(?<=https://deliveroo.co.uk/menu/london/)(.*)(?=\\?postcode=)',
+        url)[0]
+
+    # If this restaurant hasn't been seen before
+    if deliveroo_name not in restaurants['deliveroo_name']:
+        # Get the webpage
+        request = urllib.request.Request(url, headers=hdr)
+        page = urllib.request.urlopen(request)
+        soup = BeautifulSoup(page)
+        # Try and process the menu, if it doesn't work handle it nicely
+        try:
+            process_menu(soup, url, tags_df, tag_type, restaurants,
+                         restaurants_to_tags, menu_sections, menu_items)
+        except Exception:
+            print(f"Fail on {url}")
+
+    # Get the postcode from the URL
+    postcode = re.findall('(?<=\\?postcode=)(.)*', url)[0]
+    # Find where it is in the postcodes data frame
+    postcodes_index = (postcodes['post_code'] == postcode).index[0]
+
+    # Find the restaurants id in the restaurants dataframe using the deliveroo
+    # name
+    restaurant_index = \
+        (restaurants['deliveroo_name'] == deliveroo_name).index[0]
+
+    # Add an entry to restaurants_to_locs saying that this restaurant is
+    # available at this location
+    restaurants_to_locs = restaurants_to_locs.append(
+        {"restaurant_id": restaurant_index, "loc_id": postcodes_index},
+        ignore_index=True)
+
+    # Return the amended dataframes
+    return (tags_df, tag_type, restaurants, restaurants_to_tags, menu_sections,
+            menu_items, restaurants_to_locs)

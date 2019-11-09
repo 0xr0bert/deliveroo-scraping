@@ -233,3 +233,58 @@ def process_restaurants_for_postcode(postcode, tags_df, tag_type, restaurants,
              menu_sections, menu_items, restaurants_to_locs) = \
                 get_restaurant_and_process_menu(
                     "https://deliveroo.co.uk" + destination)
+
+    # Return the amended dataframes
+    return (tags_df, tag_type, restaurants, restaurants_to_tags, menu_sections,
+            menu_items, restaurants_to_locs)
+
+
+def process_all_restaurants(postcodes, db_name):
+    # This function processes all of the postcodes
+
+    # Create the dataframes
+    tags_df = pd.DataFrame({"name": [], "type": []})\
+        .astype({"name": "str", "type": "int32"})
+
+    tag_type = pd.DataFrame({"name": []})
+    restaurants = pd.DataFrame({"name": [], "deliveroo_name": []})\
+        .astype({"name": "str", "deliveroo_name": "str"})
+
+    restaurants_to_tags = pd.DataFrame({"restaurant_id": [], "tag_id": []})\
+        .astype({"restaurant_id": "int64", "tag_id": "int64"})
+
+    menu_sections = pd.DataFrame({"restaurant_id": [], "name": []})\
+        .astype({"restaurant_id": "int64", "name": "str"})
+
+    menu_items = pd.DataFrame(
+        {"menu_section_id": [],
+         "name": [],
+         "price_in_pence": [],
+         "is_popular": []}).astype(
+        {"menu_section_id": "int64",
+         "name": "str",
+         "price_in_pence": "int64",
+         "is_popular": "bool"})
+
+    restaurants_to_locs = pd.DataFrame({"restaurant_id": [], "loc_id": []})\
+        .astype({"restaurant_id": "int64", "loc_id": "int64"})
+
+    for post_code in postcodes['post_code']:
+        (tags_df, tag_type, restaurants, restaurants_to_tags, menu_sections,
+         menu_items, restaurants_to_locs) =\
+            process_restaurants_for_postcode(post_code, tags_df, tag_type,
+                                             restaurants, restaurants_to_tags,
+                                             menu_sections, menu_items,
+                                             restaurants_to_locs, postcodes)
+
+    # Write to db
+    cnx = sqlite3.connect(db_name)
+    postcodes.to_sql("POSTCODES", cnx, index_label="id")
+    restaurants.to_sql("RESTAURANTS", cnx, index_label="id")
+    restaurants_to_locs.to_sql("RESTAURANTS_AVAILABLE", cnx, index_label="id")
+    menu_items.to_sql("MENU_ITEMS", cnx, index_label="id")
+    menu_sections.to_sql("MENU_SECTIONS", cnx, index_label="id")
+    tags_df.to_sql("CATEGORIES", cnx, index_label="id")
+    tag_type.to_sql("CATEGORY_TYPES", cnx, index_label="id")
+    restaurants_to_tags.to_sql("RESTAURANT_CATEGORIES", cnx, index_label="id")
+    cnx.close()

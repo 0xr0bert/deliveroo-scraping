@@ -5,6 +5,11 @@ import re
 from bs4 import BeautifulSoup
 
 
+# Parameters
+postcodes_list = ["W1F7EY"]
+db_name = "scraped.db"
+
+
 # This is so that Deliveroo think the scraper is Google Chrome
 # as opposed to a web scraper
 hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11' +
@@ -232,7 +237,9 @@ def process_restaurants_for_postcode(postcode, tags_df, tag_type, restaurants,
             (tags_df, tag_type, restaurants, restaurants_to_tags,
              menu_sections, menu_items, restaurants_to_locs) = \
                 get_restaurant_and_process_menu(
-                    "https://deliveroo.co.uk" + destination)
+                    "https://deliveroo.co.uk" + destination, tags_df, tag_type,
+                    restaurants, restaurants_to_tags, menu_sections,
+                    menu_items, restaurants_to_locs, postcodes)
 
     # Return the amended dataframes
     return (tags_df, tag_type, restaurants, restaurants_to_tags, menu_sections,
@@ -288,3 +295,10 @@ def process_all_restaurants(postcodes, db_name):
     tag_type.to_sql("CATEGORY_TYPES", cnx, index_label="id")
     restaurants_to_tags.to_sql("RESTAURANT_CATEGORIES", cnx, index_label="id")
     cnx.close()
+
+
+if __name__ == "__main__":
+    postcodes_df = pd.DataFrame({
+        'post_code': postcodes_list
+    })
+    process_all_restaurants(postcodes_df, db_name)
